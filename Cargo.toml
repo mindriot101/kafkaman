@@ -1,0 +1,14 @@
+[package]
+name = "kafkaman"
+version = "0.1.0"
+authors = ["Simon Walker <s.r.walker101@googlemail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rdkafka = "0.22.0"
+structopt = "0.3.5"
+anyhow = "1.0.26"
+env_logger = "0.7.1"
+log = "0.4.8"
