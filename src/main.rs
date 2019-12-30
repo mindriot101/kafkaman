@@ -83,7 +83,16 @@ impl KafkaMan {
 
                 let topic_results = client.create_topics(&[new_topic], &opts).compat().await?;
                 for result in topic_results {
-                    log::trace!("topic result {:?}", result);
+                    match result {
+                        Ok(_) => {}
+                        Err((name, err)) => match err {
+                            rdkafka::error::RDKafkaError::TopicAlreadyExists => log::warn!(
+                                "topic {} already exists; not making changes to existing topics",
+                                name
+                            ),
+                            e => log::warn!("topic: {}, error: {:?}", name, e),
+                        },
+                    }
                 }
 
                 Ok(())
