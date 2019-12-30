@@ -1,7 +1,7 @@
 use anyhow::Error;
+use futures::compat::Future01CompatExt;
 use rdkafka::{admin, config};
 use structopt::StructOpt;
-use futures::compat::Future01CompatExt;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kafkaman", about = "Manage kafka")]
