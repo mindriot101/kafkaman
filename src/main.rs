@@ -1,6 +1,7 @@
 use anyhow::Error;
-use rdkafka::{config, admin};
+use rdkafka::{admin, config};
 use structopt::StructOpt;
+use futures::compat::Future01CompatExt;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kafkaman", about = "Manage kafka")]
@@ -37,9 +38,7 @@ fn main() -> Result<(), Error> {
 
     let mut rt = tokio::runtime::Runtime::new()?;
 
-    rt.block_on(async {
-        KafkaMan::new(opts).run().await
-    })
+    rt.block_on(async { KafkaMan::new(opts).run().await })
 }
 
 struct KafkaMan {
@@ -54,27 +53,49 @@ impl KafkaMan {
     async fn run(self) -> Result<(), Error> {
         log::info!("running kafkaman");
         match self.opts.cmd {
-            SubOpts::CreateTopic { name, partitions, replication_factor } => {
+            SubOpts::CreateTopic {
+                name,
+                partitions,
+                replication_factor,
+            } => {
                 log::info!("creating topic `{}`", name);
 
                 let client: admin::AdminClient<_> = config::ClientConfig::new()
                     .set("bootstrap.servers", &self.opts.broker)
+                    .set("session.timeout.ms", "6000")
                     .create()?;
+                // TODO: timeouts
+                let opts = admin::AdminOptions::new();
+                log::debug!(
+                    "creating topic {} with {} partitions and a replication factor of {}",
+                    name,
+                    partitions,
+                    replication_factor
+                );
+
+                let new_topic = admin::NewTopic::new(
+                    name.as_str(),
+                    partitions as _,
+                    admin::TopicReplication::Fixed(replication_factor as _),
+                );
+
+                let topic_results = client.create_topics(&[new_topic], &opts).compat().await?;
+                for result in topic_results {
+                    log::trace!("topic result {:?}", result);
+                }
 
                 Ok(())
-            },
+            }
             _ => todo!(),
         }
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use futures::compat::Future01CompatExt;
-    use rdkafka::config::{self, ClientConfig};
+    use rdkafka::config::ClientConfig;
     use rdkafka::{admin, client, types, util};
 
     fn init() {
