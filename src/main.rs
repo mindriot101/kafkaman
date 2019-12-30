@@ -15,6 +15,8 @@ struct Opts {
 
 #[derive(StructOpt, Debug)]
 enum SubOpts {
+    ListTopics {},
+
     CreateTopic {
         name: String,
         #[structopt(short, long, default_value = "1")]
